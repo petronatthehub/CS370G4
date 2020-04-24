@@ -1,5 +1,7 @@
 /*
-Adapted by: Garrett Sullivan
+Adapted by Garrett Sullivan
+Updated by Stephanie Petronella to handle rectangle objects and different layer types
+
 Sources/Credit: Connor Anderson's Youtube series "libGDX-Box2D"
 https://www.youtube.com/watch?v=_y1RvNWoRFU&list=PLD_bW3UTVsElsuvyKcYXHLnWb8bD0EQNI
 */
@@ -7,42 +9,91 @@ https://www.youtube.com/watch?v=_y1RvNWoRFU&list=PLD_bW3UTVsElsuvyKcYXHLnWb8bD0E
 package com.mytile.game.extras;
 
 
-
+import com.badlogic.gdx.maps.MapLayer;
+import com.badlogic.gdx.maps.MapLayers;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.MapObjects;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
+import com.badlogic.gdx.maps.objects.RectangleMapObject;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 
 
 public class GameObjects {
 	
-	public static void ObjectLayer(World game, MapObjects objects) {
-		//loop through all the objects in the layer
-		for(MapObject object : objects) {
+	//changed from passing in all the objects of one layer to instead passing in all layers
+	public static void ObjectLayer(World game, MapLayers layers) {
+		//looping through all the layers
+		for(MapLayer layer : layers) {
+			
+			//getting the list of objects in the layer
+			MapObjects objects = layer.getObjects();
+			
+			//looping through all the objects in the layer
+			for (MapObject object : objects) {
 		
-			Shape shape;
-			//if object is a polygon in Tiled
-			if(object instanceof PolygonMapObject) {
-				shape = createPolygon((PolygonMapObject) object);
-			}
-			//if not, continue
-			else {
-				continue;
+				Shape shape;
+				
+				//if object is a rectangle in Tiled
+				if (object instanceof RectangleMapObject) {
+                    			shape = getShapeFromRectangle((RectangleMapObject) object);
+               			}
+				
+				//if object is a polygon in Tiled
+				if(object instanceof PolygonMapObject) {
+					shape = createPolygon((PolygonMapObject) object);
+				}
+				//if not, continue
+				else {
+					continue;
 			}
 			
+				
 			Body body;
 			BodyDef bdef = new BodyDef();
-			//sets body def to static 
+				
+			//sets body def to static because the body will not move
 			bdef.type = BodyDef.BodyType.StaticBody;	
+			
+			//positions the body where it should be on the track; necessary just for rectangle objects 
+                        if (object instanceof RectangleMapObject)
+                        	bDef.position.set(getCenterForRectangle((RectangleMapObject) object));
+				
 			//creates a body based on the body def
 			body = game.createBody(bdef);
-			//the body is formed into the current shape and sets the density to 1 (same as car)
-			body.createFixture(shape, 1.0f);
+
+			//the body is given shape and properties using fixtures
+                	FixtureDef fDef = new FixtureDef();
+                	fDef.shape = shape;
+                	fDef.density = 1f;
+			
+		        //identifies if the layer is the collision layer; if so, it adds the fixture as is to each object
+			if (layer.getName().contentEquals("Walls") || layer.getName().contentEquals("Wall"))
+				body.createFixture(fDef);
+				
+			//if the layer is the mud layer, adds to each object the Sensor property so that a car can drive through it 
+			//and it will send a signal to slow the car down
+			if (layer.getName().contentEquals("Mud")) {
+				fDef.isSensor = true;
+				body.createFixture(fDef);
+			}
+			
 			shape.dispose();
 	
 		}
 	}
+	
+	//used to get the shape from a rectangle object in Tiled
+	private static Shape getShapeFromRectangle(RectangleMapObject rectangle) {
+		Rectangle rectangleBox = rectangle.getRectangle();
+		PolygonShape polyShape = new PolygonShape();
+		polyShape.setAsBox((float)(rectangleBox.getWidth()*0.5 / Constants.PPM),
+			(float)(rectangleBox.getHeight()*0.5 / Constants.PPM));
+		return polyShape;
+   	}
+	
+	//used to get the shape from a polygon object in Tiled
 	//chain shape is used because the walls are a series of connected lines that form a shape
 	private static ChainShape createPolygon(PolygonMapObject polygon) {
 		
@@ -57,4 +108,12 @@ public class GameObjects {
 	
 		return cs;
 	}
+		
+        //used for placing a rectangle shape over its corresponding body
+	private static Vector2 getCenterForRectangle(RectangleMapObject rectangle) {
+		Rectangle rectangleBox = rectangle.getRectangle();
+		Vector2 center = new Vector2();
+		rectangleBox.getCenter(center);
+		return center.scl(1 / Constants.PPM);
+    	}
 }
