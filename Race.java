@@ -1,6 +1,8 @@
 
 /*
-Written by: Garrett Sullivan
+Written by Garrett Sullivan
+Updated by Stephanie Petronella to handle the effect of mud on car motion
+
 Sources/Credit: Connor Anderson's Youtube series "libGDX-Box2D"
 https://www.youtube.com/watch?v=_y1RvNWoRFU&list=PLD_bW3UTVsElsuvyKcYXHLnWb8bD0EQNI
 OniBojan's Youtube video "LibGDX & Box2D Programming Tutorial "Top down car with drifting"-Part#4-Moving our car"
@@ -21,16 +23,14 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.physics.box2d.Body;
-import com.badlogic.gdx.physics.box2d.BodyDef;
-import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
-import com.badlogic.gdx.physics.box2d.PolygonShape;
-import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.physics.box2d.*;
 import com.mytile.game.extras.GameObjects;
+
 
 
 public class Race implements Screen{
@@ -38,6 +38,8 @@ public class Race implements Screen{
 	private static final int P1y = 810;		//Player one start position y
 	private static final int P1x = 1500;	//x
 	public RacingGame g;
+	
+	private boolean isInMud;
 	
 	public Race(RacingGame game) {
 		this.g = game;
@@ -51,6 +53,10 @@ public class Race implements Screen{
 		g.world = new World(new Vector2(0, 0), false);
 		//used to render the Box2D World and camera
 		g.B2Drender= new Box2DDebugRenderer();
+		//used for slowing down the race car when passing over mud or grass
+		g.setContactListener(new MudContactListener());
+		//this variable will be set to true whenever a car passes over mud or grass
+		isInMud = false;
 		//initializes driver by creating a car object and setting its start position
 		g.driver = buildCar(P1x,P1y,CARw*2,CARh*2,false);
 		//used to render the texture within the window 
@@ -61,8 +67,8 @@ public class Race implements Screen{
 		//used to store the Tiled map and render it 
 		g.track1 = new TmxMapLoader().load("map/TiledTrack.tmx");
 		g.rend1 = new OrthogonalTiledMapRenderer(g.track1);
-		//calls on the GameObjects class to construct the objects related to the Tiled map
-		GameObjects.ObjectLayer(g.world, g.track1.getLayers().get("Walls").getObjects());
+		//calls on the GameObjects class to construct the objects in each layer of the Tiled map
+		GameObjects.ObjectLayer(g.world, g.track1.getLayers());
 	}
 
 	@Override
@@ -134,11 +140,21 @@ public class Race implements Screen{
 		}
 		
 		if(Gdx.input.isKeyPressed(Input.Keys.S)) {
-			velocity.set(0, -60.0f);
+			if(isInMud) {
+				velocity.set(0, -6.0f);
+			}
+			else {
+				velocity.set(0, -60.0f);
+			}
 			g.driver.setLinearDamping(1);
 		}
 		else if(Gdx.input.isKeyPressed(Input.Keys.W)) {
-			velocity.set(0, 120.0f);
+			if(isInMud) {
+				velocity.set(0, 12.0f);
+			}
+			else {
+				velocity.set(0, 120.0f);
+			}
 			g.driver.setLinearDamping(0.5f);
 		}
 		else {
@@ -147,11 +163,21 @@ public class Race implements Screen{
 		}
 		
 		if(Gdx.input.isKeyPressed(Input.Keys.D)) {
-			g.driver.setAngularVelocity(-1.25f);
+			if(isInMud) {
+				g.driver.setAngularVelocity(0, -0.125f);
+			}
+			else {
+				g.driver.setAngularVelocity(-1.25f);
+			}
 			g.driver.setLinearDamping(1);
 		}
 		else if(Gdx.input.isKeyPressed(Input.Keys.A)) {
-			g.driver.setAngularVelocity(1.25f);
+			if(isInMud) {
+				g.driver.setAngularVelocity(0, 0.125f);
+			}
+			else {
+				g.driver.setAngularVelocity(1.25f);
+			}
 			g.driver.setLinearDamping(1);
 		}
 		else {
@@ -200,4 +226,45 @@ public class Race implements Screen{
 		
 		return car;
 	}
+	
+	//used for sensing when the race car overlaps mud or grass
+	private class MudContactListener implements ContactListener {
+            
+	    @Override
+            //this method is called automatically when a collision is sensed
+            //the contact object holds information about the bodies involved
+	    public void beginContact(Contact con) {
+                
+                Fixture f1 = con.getFixtureA();
+                Fixture f2 = con.getFixtureB();
+                Body b1 = f1.getBody();
+                Body b2 = f2.getBody();
+
+                if (b1.getType() == BodyDef.BodyType.DynamicBody && f2.isSensor()) {
+                    isInMud = true;
+                }
+
+            }
+
+            @Override
+	    //this method is called when a collision ends
+            public void endContact(Contact con) {
+		Fixture f1 = con.getFixtureA();
+                Fixture f2 = con.getFixtureB();
+                Body b1 = f1.getBody();
+                Body b2 = f2.getBody();
+
+                if (b1.getType() == BodyDef.BodyType.DynamicBody && f2.isSensor()) {
+                	isInMud = false; 	
+                }
+                
+            }
+
+            @Override
+            public void preSolve(Contact con, Manifold oldManifold) { }
+
+            @Override
+            public void postSolve(Contact con, ContactImpulse impulse) { }
+
+    }
 }
