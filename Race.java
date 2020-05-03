@@ -31,8 +31,6 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.*;
 import com.mytile.game.extras.GameObjects;
 
-
-
 public class Race implements Screen{
 	
 	private static final int P1y = 810;		//Player one start position y
@@ -40,6 +38,7 @@ public class Race implements Screen{
 	public RacingGame g;
 	
 	private boolean isInMud;
+	private ArrayList<Boolean> mudTouching;
 	
 	public Race(RacingGame game) {
 		this.g = game;
@@ -55,7 +54,9 @@ public class Race implements Screen{
 		g.B2Drender= new Box2DDebugRenderer();
 		//used for slowing down the race car when passing over mud or grass
 		g.setContactListener(new MudContactListener());
-		//this variable will be set to true whenever a car passes over mud or grass
+		//this arraylist will be used to record the current contacts a car may have with different mud objects
+		mudTouching = new ArrayList<Boolean>(6);
+		//this variable will be set to true if mudTouching contains true values
 		isInMud = false;
 		//initializes driver by creating a car object and setting its start position
 		g.driver = buildCar(P1x,P1y,CARw*2,CARh*2,false);
@@ -123,7 +124,12 @@ public class Race implements Screen{
 		//6 and 2 are to keep the refresh rate smooth
 		g.world.step(1/60f,  6,  2);
 		
-		//UserInput(delta);	//captures and implements user input
+		if(mudTouching.isEmpty())
+            		isInMud = false;
+        	else
+           		isInMud = true;
+		
+		UserInput(delta);	//captures and implements user input
 		g.batch.setProjectionMatrix(g.cam.combined);	//
 		g.rend1.setView(g.cam); //resets the camera view bounds
 	}
@@ -239,9 +245,13 @@ public class Race implements Screen{
                 Fixture f2 = con.getFixtureB();
                 Body b1 = f1.getBody();
                 Body b2 = f2.getBody();
+		Object o1 = b1.getUserData();
+                Object o2 = b2.getUserData();
 
-                if (b1.getType() == BodyDef.BodyType.DynamicBody && f2.isSensor()) {
-                    isInMud = true;
+                if(o1 == "Car" || o2 == "Car") {
+                    if(o1 == "Mud" || o2 == "Mud") {
+			    mudTouching.add(true);
+		    }
                 }
 
             }
@@ -253,11 +263,14 @@ public class Race implements Screen{
                 Fixture f2 = con.getFixtureB();
                 Body b1 = f1.getBody();
                 Body b2 = f2.getBody();
+		Object o1 = b1.getUserData();
+                Object o2 = b2.getUserData();
 
-                if (b1.getType() == BodyDef.BodyType.DynamicBody && f2.isSensor()) {
-                	isInMud = false; 	
-                }
-                
+                if(o1 == "Car" || o2 == "Car") {
+                    if(o1 == "Mud" || o2 == "Mud") {
+                            mudTouching.remove(mudTouching.size()-1);
+		    }
+		}      
             }
 
             @Override
