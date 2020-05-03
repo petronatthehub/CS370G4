@@ -228,6 +228,10 @@ public class Race implements Screen{
 		shape.setAsBox(width/2/PPM, height/2/PPM);
 		
 		car.createFixture(shape, 1.0f);
+		
+		//so that the car can be sensed in a colision
+		car.setUserData("Car");
+		
 		shape.dispose();
 		
 		return car;
