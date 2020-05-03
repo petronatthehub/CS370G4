@@ -40,8 +40,12 @@ public class GameObjects {
                     			shape = getShapeFromRectangle((RectangleMapObject) object);
                			}
 				
+				else if (object instanceof PolygonMapObject && layer.getName().equals("Mud")) {
+                    			shape = createComplexPolygon((PolygonMapObject) object);
+                		}
+				
 				//if object is a polygon in Tiled
-				if(object instanceof PolygonMapObject) {
+				else if(object instanceof PolygonMapObject) {
 					shape = createPolygon((PolygonMapObject) object);
 				}
 				//if not, continue
@@ -68,15 +72,16 @@ public class GameObjects {
                 	fDef.shape = shape;
                 	fDef.density = 1f;
 			
-		  //identifies if the layer is the collision layer; if so, it adds the fixture as is to each object
+		 	//identifies if the layer is the collision layer; if so, it adds the fixture as is to each object
 			if (layer.getName().contentEquals("Walls") || layer.getName().contentEquals("Wall"))
 				body.createFixture(fDef);
 				
 			//if the layer is the mud layer, adds to each object the Sensor property so that a car can drive through it 
 			//and it will send a signal to slow the car down
-			if (layer.getName().contentEquals("Mud")) {
+			else if (layer.getName().contentEquals("Mud")) {
 				fDef.isSensor = true;
 				body.createFixture(fDef);
+				body.setUserData("Mud");
 			}
 			
 			shape.dispose();
@@ -108,8 +113,22 @@ public class GameObjects {
 	
 		return cs;
 	}
+	
+	//used to create a polygon shape based off of a polygon object in Tiled
+	//unlike chain shape, this creates a closed shape
+	private static Shape createComplexPolygon(PolygonMapObject object) {
+		PolygonShape ps = new PolygonShape();
+		float[] vertices = object.getPolygon().getTransformedVertices();
+		Vector2[] shapeVertices = new Vector2[vertices.length/2];
+
+		for(int i=0;i<shapeVertices.length;i++) {
+		    shapeVertices[i] = new Vector2(vertices[i*2] / Constants.PPM, vertices[(i*2)+1] / Constants.PPM);
+		}
+		ps.set(shapeVertices);
+		return ps;
+    	}
 		
-  //used for placing a rectangle shape over its corresponding body
+  	//used for placing a rectangle shape over its corresponding body
 	private static Vector2 getCenterForRectangle(RectangleMapObject rectangle) {
 		Rectangle rectangleBox = rectangle.getRectangle();
 		Vector2 center = new Vector2();
