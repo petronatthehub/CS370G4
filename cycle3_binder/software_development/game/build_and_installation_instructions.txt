@@ -1,0 +1,1 @@
+To build our game in an IDE, go to https://github.com/petronath/RacingGamev3
