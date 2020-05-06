@@ -41,7 +41,7 @@ public class Race implements Screen{
     public RacingGamev3 g;
     private boolean isInMud;
     private ArrayList<Boolean> mudTouching;
-    //private int currentLap;
+    private int currentLap;
 
     public class ObjectContactListener implements ContactListener {
         @Override
@@ -58,8 +58,8 @@ public class Race implements Screen{
                     System.out.println("They touch");
                 }
                 else if (o1 == "StartLine" || o2 == "StartLine") {
-                    //currentLap = currentLap + 1;
-                    //System.out.println(currentLap);
+                    currentLap = currentLap + 1;
+                    System.out.println(currentLap);
                     System.out.println("Crossed");
                 }
             }
@@ -107,7 +107,7 @@ public class Race implements Screen{
 
         //For sensing mud/grass collisions
         isInMud = false;
-        //currentLap = -1;
+        currentLap = -1;
         mudTouching = new ArrayList<Boolean>(6);
 
         //used to render the texture within the window
@@ -157,6 +157,8 @@ public class Race implements Screen{
 
         //initializes driver by creating a car object and setting its start position
         g.driver = buildCar(P1x,P1y,CARw*2,CARh*2,false);
+        //if(GameObjects.getCarDirection().equals("left"))
+         //   g.driver.setTransform(g.driver.getPosition(), (float)1.571);
 
         g.rend1 = new OrthogonalTiledMapRenderer(g.track);
         //calls on the GameObjects class to construct the objects related to the Tiled map
@@ -202,6 +204,7 @@ public class Race implements Screen{
     @Override
     public void resize(int width, int height) {
         g.cam.setToOrtho(false, width*1.6f, height*1.6f);	//zooms out camera to better fit the map
+        //g.cam.setToOrtho(false, width*2.5f, height*2.5f);	//zooms out camera to better fit the map
     }
 
     @Override
@@ -279,7 +282,7 @@ public class Race implements Screen{
 
         if(Gdx.input.isKeyPressed(Input.Keys.D)) {
             if(isInMud) {
-                g.driver.setAngularVelocity(-0.25f);
+                g.driver.setAngularVelocity(-0.5f);
                 g.driver.setLinearDamping(5);
             }
             else {
@@ -290,7 +293,7 @@ public class Race implements Screen{
         }
         else if(Gdx.input.isKeyPressed(Input.Keys.A)) {
             if(isInMud) {
-                g.driver.setAngularVelocity(0.25f);
+                g.driver.setAngularVelocity(0.5f);
                 g.driver.setLinearDamping(5);
             }
             else {
