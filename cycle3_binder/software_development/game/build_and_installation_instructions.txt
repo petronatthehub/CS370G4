@@ -1,4 +1,0 @@
-To build our game in an IDE, go to https://github.com/petronath/RacingGamev3.git
-There you will find a READ_ME with more details.
-
-To install/execute our game, download RacingGamev3Executable.jar (in the same folder as this text document). Once downloaded, double-clicking it should launch the game.
